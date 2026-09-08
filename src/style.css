@@ -8,3 +8,56 @@
 @media(max-width:650px){#game{min-height:600px}.topbar{margin:0 16px;height:72px}.brand{font-size:25px}.brand-dot{font-size:8px}.brand-mark i{height:22px}.mode-nav{position:absolute;top:83px;left:0;gap:0;padding:3px}.nav-button{font-size:10px;padding:5px 10px;min-height:30px}.nav-button .icon{display:none}.nav-divider{height:16px}.utilities{gap:6px}.icon-button{width:32px;height:34px}.location-block{left:18px;top:143px}.location-block .eyebrow{font-size:6.5px;letter-spacing:1.1px}h1{font-size:29px;margin:10px 0}.location-block p{font-size:9px;gap:5px}.live-label{display:none}.camera-panel{top:83px;right:17px}.panel-eyebrow{display:none}.camera-switch{padding:3px;gap:2px}.camera-switch button{width:32px;height:30px;padding:0}.camera-switch button span{display:none}.camera-switch .icon{width:16px}.bottom-left{left:17px;bottom:124px;width:141px}.map-card{padding:8px 8px 0;border-radius:6px}.map-card canvas{height:94px}.map-top{font-size:7px;letter-spacing:1px;margin-bottom:6px}.north{font-size:7px}.map-top .icon{width:10px}.map-bottom{height:26px;font-size:6px}.map-location{font-size:7px;gap:3px}.map-bottom>span:last-child{display:none}.world-meta{font-size:5.5px;letter-spacing:.35px;margin-top:7px}.instruments{right:17px;bottom:139px;width:171px;padding:11px 12px 0;border-radius:6px}.car-ident .eyebrow{display:none}.car-ident h2{font-size:12px;margin-top:0}.car-ident h2 span{font-size:11px}.drivetrain{font-size:6px;padding:3px}.speed-section{margin-top:9px}#speed{font-size:54px}.speed-readout{gap:6px}.speed-readout>div{margin-top:17px}#speed-unit{font-size:7px;letter-spacing:.3px}.gear{padding-left:10px;min-width:28px;margin-top:4px}.gear>span{font-size:24px}.gear small{font-size:5px}.rpm-track{margin-top:10px;height:4px}.rpm-labels{font-size:5px;margin-top:5px}.rpm-labels small{font-size:4px}.condition{height:31px;margin-top:10px;gap:5px;font-size:7px}.condition>span .icon{display:none}.condition strong{font-size:6px}.condition button{min-width:19px;padding:1px}.condition button .icon{width:12px;height:12px}.condition-bar{min-width:10px}.control-strip{bottom:22px;padding:8px 12px;gap:14px;white-space:nowrap}.control-item{gap:4px;font-size:7px}.control-item:first-of-type .key-group kbd{width:15px;height:18px;font-size:8px}.control-item:nth-of-type(3),.control-item:nth-of-type(4){display:none}.control-help{display:grid}.fullscreen-button{width:25px}.driving-hint{bottom:320px;font-size:11px;left:50%}.driving-hint small{font-size:9px}.trial-panel{top:241px;left:17px;width:207px;padding:12px}.trial-panel strong{font-size:24px}.trial-panel p{font-size:9px}.toast{top:230px;font-size:10px;width:max-content;max-width:90%}.touch-controls{display:flex;position:absolute;bottom:64px;left:17px;right:17px;justify-content:space-between;pointer-events:none}.touch-controls>div{display:flex;gap:7px}.touch-controls button{width:45px;height:45px;display:grid;place-items:center;background:#f4f2e9df;border:1px solid #ffffffb0;border-radius:7px;font:20px var(--mono);pointer-events:auto;touch-action:none;user-select:none}.touch-controls button[data-control=handbrake]{font-size:12px}.touch-controls button.pressed{background:var(--orange);color:white}dialog{padding:30px 24px}dialog h2{font-size:26px}.setting{gap:12px}.setting label{font-size:11px}.setting small{font-size:9px}select{font-size:10px;max-width:148px}.paint-options{gap:14px}}
 @media(pointer:coarse) and (min-width:651px){.touch-controls{display:flex;position:absolute;bottom:18px;left:25px;right:25px;justify-content:space-between;pointer-events:none}.touch-controls>div{display:flex;gap:8px}.touch-controls button{width:47px;height:44px;background:#f4f2e9e8;border:1px solid #fff8;border-radius:6px;pointer-events:auto;touch-action:none;font:19px var(--mono)}.control-strip{bottom:22px}.control-strip .control-item{display:none}.touch-controls button[data-control=handbrake]{font-size:11px}.touch-controls button.pressed{background:var(--orange);color:white}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
+
+/* --- Map picker, vehicle picker and drift readout ---------------------- */
+.map-choices,.vehicle-choices{display:grid;gap:10px;margin:16px 0 4px}
+.map-choices{grid-template-columns:1fr}
+.vehicle-choices{grid-template-columns:1fr 1fr}
+.map-choice,.vehicle-choice{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:9px;background:#fffdf6;cursor:pointer;font:inherit;color:inherit;transition:border-color .16s,background .16s}
+.map-choice:hover,.vehicle-choice:hover{border-color:#b6bcae;background:#fbf9f0}
+.map-choice.active,.vehicle-choice.active{border-color:var(--orange);background:#fdf3ec}
+.map-choice .swatch{display:flex;flex-shrink:0;width:44px;height:44px;border-radius:7px;overflow:hidden;border:1px solid #0001}
+.map-choice .swatch i{flex:1}
+.map-choice-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+.map-choice strong,.vehicle-choice strong{font:600 14px/1.2 'DM Sans',sans-serif}
+.map-choice span,.vehicle-choice span{font-size:10.5px;color:var(--muted);letter-spacing:.02em}
+.map-choice em{font-style:normal;font:600 9px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--orange)}
+.vehicle-choice{flex-direction:column;align-items:flex-start;gap:3px}
+.drift-panel{position:absolute;top:50%;right:26px;transform:translateY(-58%);width:132px;padding:12px 14px 11px;background:#f4f2e9ea;border:1px solid #fff8;border-radius:10px;backdrop-filter:blur(7px);text-align:right;pointer-events:none;z-index:4;animation:driftPop .22s ease-out}
+.drift-head{display:flex;align-items:center;justify-content:flex-end;gap:5px;font:700 8.5px/1 var(--mono);letter-spacing:.16em;color:var(--muted)}
+.drift-head .icon{width:13px;height:13px}
+.drift-panel strong{display:block;font:800 32px/1 'Barlow Condensed','Arial Narrow',sans-serif;letter-spacing:-.01em;font-variant-numeric:tabular-nums;margin-top:3px}
+.drift-panel>span{display:block;font:700 13px/1 var(--mono);color:var(--orange);margin-top:1px}
+.drift-bar{height:3px;margin:8px 0 6px;background:#0001;border-radius:2px;overflow:hidden}
+.drift-bar i{display:block;height:100%;width:0;background:var(--orange);transition:width .1s linear}
+.drift-panel small{font:600 8.5px/1 var(--mono);letter-spacing:.1em;color:var(--muted)}
+.drift-panel.banked strong{color:var(--orange)}
+@keyframes driftPop{from{opacity:0;transform:translateY(-58%) scale(.94)}to{opacity:1;transform:translateY(-58%) scale(1)}}
+/* First person needs the windscreen clear, so the heavy panels step back. */
+.cockpit .location-block,.cockpit .driving-hint{opacity:0;pointer-events:none}
+.cockpit .map-card,.cockpit .instruments{opacity:.82}
+.cockpit .map-card{transform:scale(.86);transform-origin:bottom left}
+.cockpit .instruments{transform:scale(.88);transform-origin:bottom right}
+.location-block,.map-card,.instruments,.driving-hint{transition:opacity .3s ease,transform .3s ease}
+@media(max-width:900px){.drift-panel{top:auto;bottom:150px;right:14px;transform:none;width:104px;animation:none}}
+
+/* --- Traffic density, on the HUD ---------------------------------------- */
+.traffic-panel{position:absolute;top:150px;right:26px;width:168px;padding:11px 13px 9px;background:#f4f2e9e6;border:1px solid #fff8;border-radius:10px;backdrop-filter:blur(7px);z-index:4}
+.traffic-panel .panel-eyebrow{display:flex;align-items:center;gap:5px;margin-bottom:7px}
+.traffic-panel .panel-eyebrow .icon{width:13px;height:13px}
+.traffic-panel .panel-eyebrow span{margin-left:auto;font:700 11px/1 var(--mono);color:var(--orange)}
+.traffic-panel input[type=range]{width:100%;margin:0;accent-color:var(--orange)}
+.traffic-scale{display:flex;justify-content:space-between;margin-top:3px;font:600 8px/1 var(--mono);letter-spacing:.09em;color:var(--muted)}
+.cockpit .traffic-panel{opacity:0;pointer-events:none}
+.traffic-panel{transition:opacity .3s ease}
+@media(max-width:900px){.traffic-panel{display:none}}
+
+/* --- Right-hand HUD column ---------------------------------------------- */
+/* Camera and traffic panels stack in one positioned column, so the traffic
+   control can never land on top of the camera switch at any breakpoint. */
+.right-stack{position:absolute;right:35px;top:130px;display:flex;flex-direction:column;align-items:flex-end;gap:10px;z-index:4}
+.right-stack .camera-panel,.right-stack .traffic-panel{position:static;right:auto;top:auto}
+@media(min-width:1600px){.right-stack{right:47px;top:151px}}
+@media(max-width:1150px){.right-stack{right:25px}}
+@media(max-width:900px){.right-stack{top:111px}}
+@media(max-width:650px){.right-stack{top:83px;right:17px}.right-stack .traffic-panel{display:none}}

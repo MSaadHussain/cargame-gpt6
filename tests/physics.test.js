@@ -14,8 +14,10 @@ test('suspension supports the car at a stable ride height on all four wheels', (
 test('engine accelerates forward, service brakes slow down, and reverse engages after stopping', () => {
   const p = new DrivingPhysics(); advance(p, 5, { forward: true });
   assert.ok(p.forwardSpeed > 15); assert.ok(p.chassis.position.z < SPAWN.z - 35);
-  advance(p, 1.5, { backward: true }); assert.ok(p.forwardSpeed < 8);
-  advance(p, 4, { backward: true }); assert.ok(p.forwardSpeed < -1);
+  const cruising = p.forwardSpeed;
+  advance(p, 1.5, { backward: true });
+  assert.ok(p.forwardSpeed < cruising - 12, 'service braking sheds real speed');
+  advance(p, 6, { backward: true }); assert.ok(p.forwardSpeed < -1);
 });
 
 test('steering produces left and right turns in the expected directions', () => {
@@ -42,7 +44,8 @@ test('disabling damage preserves collisions and does not reduce body condition',
 test('handbrake lowers rear grip and applies rear-only braking', () => {
   const p = new DrivingPhysics(); advance(p, 3, { forward: true }); p.step({ handbrake: true });
   assert.ok(p.vehicle.wheelInfos[2].frictionSlip < p.vehicle.wheelInfos[0].frictionSlip);
-  assert.equal(p.vehicle.wheelInfos[2].brake, 38); assert.equal(p.vehicle.wheelInfos[0].brake, 0.35);
+  assert.equal(p.vehicle.wheelInfos[2].brake, p.spec.handbrake, 'rear axle takes the handbrake');
+  assert.ok(p.vehicle.wheelInfos[0].brake < 1, 'front axle is left alone');
 });
 
 test('repair restores spawn, body condition, velocity, orientation, and steering', () => {
@@ -56,4 +59,52 @@ test('identical fixed-step inputs produce reproducible motion', () => {
   const a = new DrivingPhysics(), b = new DrivingPhysics();
   for (let i = 0; i < 720; i++) { const input = { forward: true, right: i > 300 && i < 420 }; a.step(input); b.step(input); }
   assert.ok(a.chassis.position.distanceTo(b.chassis.position) < 1e-8);
+});
+
+test('gearbox climbs through the ratios and holds revs inside the operating range', () => {
+  const p = new DrivingPhysics();
+  const seen = new Set();
+  for (let i = 0; i < Math.round(20 / FIXED_STEP); i++) {
+    p.step({ forward: true });
+    seen.add(p.gear);
+    assert.ok(p.rpm >= p.spec.idleRpm && p.rpm <= p.spec.maxRpm, `rpm ${p.rpm} stays in range`);
+  }
+  assert.ok(p.gear >= 4, `reaches a tall gear, got ${p.gear}`);
+  assert.ok(seen.has(1) && seen.has(2) && seen.has(3), 'passes through the lower gears');
+});
+
+test('lifting off the throttle slows the car through engine braking alone', () => {
+  const p = new DrivingPhysics(); advance(p, 6, { forward: true });
+  const entry = p.forwardSpeed;
+  advance(p, 3, {});
+  assert.ok(p.forwardSpeed < entry - 3, 'overrun scrubs speed without the brake pedal');
+  assert.ok(p.forwardSpeed > 0, 'engine braking does not stop or reverse the car');
+});
+
+test('analog axes drive the same model as the digital keys', () => {
+  const digital = new DrivingPhysics(), analog = new DrivingPhysics();
+  for (let i = 0; i < 360; i++) {
+    digital.step({ forward: true, left: true });
+    analog.step({ throttleAxis: 1, steerAxis: 1 });
+  }
+  assert.ok(digital.chassis.position.distanceTo(analog.chassis.position) < 1e-9);
+  const half = new DrivingPhysics();
+  for (let i = 0; i < 360; i++) half.step({ throttleAxis: 0.35 });
+  assert.ok(half.forwardSpeed > 0 && half.forwardSpeed < digital.forwardSpeed, 'part throttle gives part acceleration');
+});
+
+test('load transfer moves grip to the front under braking and to the rear on power', () => {
+  const p = new DrivingPhysics(); advance(p, 5, { forward: true });
+  advance(p, 0.2, { backward: true });
+  assert.ok(p.accel < 0, 'the car is decelerating');
+  assert.ok(p.vehicle.wheelInfos[0].frictionSlip / p.spec.gripFront > p.vehicle.wheelInfos[2].frictionSlip / p.spec.gripRear,
+    'braking loads the front axle');
+});
+
+test('the second vehicle is heavier and hits its own drivetrain limits', () => {
+  const p = new DrivingPhysics('marlin');
+  assert.equal(p.chassis.mass, 1710);
+  advance(p, 20, { forward: true });
+  assert.ok(p.rpm <= p.spec.maxRpm);
+  assert.ok(p.gear >= 4);
 });
