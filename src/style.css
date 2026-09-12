@@ -61,3 +61,99 @@
 @media(max-width:1150px){.right-stack{right:25px}}
 @media(max-width:900px){.right-stack{top:111px}}
 @media(max-width:650px){.right-stack{top:83px;right:17px}.right-stack .traffic-panel{display:none}}
+
+/* =======================================================================
+   Phone layout: the map and telemetry move to the top so the middle of
+   the screen stays clear road, and everything shrinks to suit the width.
+   ======================================================================= */
+@media(max-width:650px){
+  .topbar{height:56px;margin:0 12px}
+  .brand{font-size:20px}
+  .brand-mark i{height:17px;width:4px}
+  .brand-dot{font-size:7px}
+  .icon-button{width:29px;height:30px}
+  .icon-button .icon{width:16px;height:16px}
+  .mode-nav{top:64px;left:0;padding:2px}
+  .nav-button{font-size:9px;padding:4px 8px;min-height:26px}
+  .nav-divider{height:13px}
+  .right-stack{top:64px;right:12px;gap:6px}
+  .camera-switch button{width:28px;height:26px}
+  .camera-switch .icon{width:14px}
+
+  /* The headline and live label are desktop framing; the map card already
+     names the location on a phone. */
+  .location-block,.world-meta{display:none}
+
+  /* --- Map, top left --- */
+  .bottom-left{top:100px;bottom:auto;left:12px;width:118px}
+  .map-card{padding:6px 6px 0;border-radius:6px}
+  .map-card canvas{height:62px}
+  .map-top{font-size:6px;letter-spacing:.7px;margin-bottom:4px}
+  .map-top .icon{width:8px;height:8px}
+  .north{font-size:6px}
+  .map-bottom{height:20px;font-size:6px}
+  .map-location{font-size:6px;gap:2px}
+
+  /* --- Telemetry, top right --- */
+  .instruments{top:100px;bottom:auto;right:12px;width:146px;padding:8px 9px 9px;border-radius:6px}
+  .car-ident,.rpm-labels,.condition>span{display:none}
+  .speed-section{margin-top:0}
+  #speed{font-size:40px}
+  .speed-readout{gap:5px}
+  .speed-readout>div{margin-top:11px}
+  #speed-unit{font-size:6px}
+  .speed-caption{display:none}
+  .gear{padding-left:7px;min-width:22px;margin-top:2px}
+  .gear>span{font-size:19px}
+  .gear small{font-size:4.5px}
+  .rpm-track{margin-top:7px;height:3px}
+  .condition{height:auto;margin-top:8px;gap:4px;font-size:6px}
+  .condition strong{font-size:6px}
+  .condition button{min-width:17px;height:17px;padding:0}
+  .condition button .icon{width:11px;height:11px}
+
+  /* --- Everything else drops below the clear middle --- */
+  .driving-hint{bottom:96px;font-size:10px}
+  .driving-hint small{font-size:8px}
+  .trial-panel{top:200px;left:12px;width:auto;right:12px;padding:9px 11px}
+  .trial-panel strong{font-size:20px}
+  .trial-panel p{font-size:8px}
+  .toast{top:auto;bottom:150px;font-size:9px}
+  .drift-panel{top:auto;bottom:150px;right:12px;width:88px;padding:8px 10px 7px}
+  .drift-panel strong{font-size:22px}
+
+  /* Touch pads hug the edges; the help pill sits between them. */
+  .touch-controls{bottom:16px;left:12px;right:12px}
+  .touch-controls button{width:42px;height:42px;font-size:18px}
+  .touch-controls>div{gap:6px}
+  .control-strip{bottom:22px;left:50%;right:auto;transform:translateX(-50%);padding:4px 6px;gap:6px}
+  .control-item{display:none}
+  .control-help{display:grid;width:26px;height:26px}
+  .fullscreen-button{width:26px;height:26px}
+}
+
+/* Very short screens: give the road back the vertical space. */
+@media(max-height:560px) and (max-width:1000px){
+  /* A phone held sideways is shorter than the min-height, which would push the
+     touch pads off the bottom of the screen. Let the game match the viewport. */
+  #game{min-height:0;height:100svh}
+  .bottom-left,.map-card{display:none}
+  .instruments{top:64px;right:12px;width:126px;padding:7px 9px 8px}
+  .instruments .condition{display:none}
+  #speed{font-size:32px}
+  /* Camera switch steps aside so the telemetry can take the corner. */
+  .right-stack{right:150px}
+  .traffic-panel{display:none}
+}
+
+/* Narrow phones: lift the help pill clear of the thumb pads. */
+@media(max-width:430px){
+  .control-strip{bottom:70px}
+  .touch-controls button{width:40px;height:40px;font-size:17px}
+}
+
+/* On a touch device the keyboard prompt is wrong advice, and the pads
+   already show what to press. */
+@media(pointer:coarse){
+  .driving-hint{display:none}
+}
