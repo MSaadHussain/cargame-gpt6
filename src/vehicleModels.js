@@ -6,6 +6,7 @@ export const VEHICLE_MODELS = {
   tempest: { kind:'supercar',width:2.08,length:4.7,roof:.88,cabinRear:.55,wheelbase:2.95 },
   formula: { kind:'formula',width:1.92,length:5.05,roof:1.15,cabinRear:.5,wheelbase:3.2 },
   rider: { kind:'bike',width:.72,length:2.2,roof:1.8,cabinRear:.4,wheelbase:1.55 },
+  cg125: { kind:'bike',width:.74,length:2.18,roof:1.8,cabinRear:.4,wheelbase:1.42 },
   swift: { kind:'scooter',width:.82,length:2.5,roof:1.8,cabinRear:.7,wheelbase:1.72 },
   vesper: { kind:'scooter',width:.76,length:2.18,roof:1.8,cabinRear:.6,wheelbase:1.48 },
   veloce: { kind: 'sedan', width: 1.91, length: 4.38, roof: 1.11, cabinRear: .92, wheelbase: 2.86 },

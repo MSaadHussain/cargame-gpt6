@@ -17,8 +17,8 @@ test('driver names reject blanks and invisible characters, and preserve typed na
   assert.equal(playerName('a'.repeat(20)).length,16);
 });
 
-test('fifteen models have finite geometry and stable driving or flight physics', () => {
-  assert.equal(Object.keys(VEHICLES).length,15);
+test('sixteen models have finite geometry and stable driving or flight physics', () => {
+  assert.equal(Object.keys(VEHICLES).length,16);
   const counts = new Set();
   for (const id of Object.keys(VEHICLES)) {
     const p = new DrivingPhysics(id);
@@ -34,7 +34,7 @@ test('fifteen models have finite geometry and stable driving or flight physics',
   }
   assert.ok(counts.size >= 6,'five new models have distinct geometry');
 });
-test('switching all fifteen rendered vehicles preserves cockpit, wheels and damage handling', () => {
+test('switching all sixteen rendered vehicles preserves cockpit, wheels and damage handling', () => {
   const previous = globalThis.document;
   globalThis.document = {createElement:()=>({getContext:()=>({fillRect(){},fillText(){}})})};
   const scene=new THREE.Scene(), p=new DrivingPhysics();

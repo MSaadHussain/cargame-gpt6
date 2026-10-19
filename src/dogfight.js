@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { AirCombat } from './airCombatRules.js';
 import { createFlightEffects } from './flightEffects.js';
 import { aircraftSpec } from './aircraftSpecs.js';
+import { MissileWarning } from './missileWarning.js';
 
 export function createAirEffects(scene) {
   const group=new THREE.Group();scene.add(group);
@@ -39,7 +40,8 @@ export function createDogfight(scene,physics,car,hooks) {
   panel.innerHTML='<div class="air-eyebrow">SKYPORT · AIR ARENA</div><h2>Flight control</h2><p class="air-stats"></p><p class="air-status"></p><p class="air-weapons"></p><ol class="air-board"></ol><button type="button">Recover / respawn · R</button><small>Click: capture · Esc: release · Mouse 1: cannon<br>Q: target lock · E: missile · F: flares (3)<br>H: landing gear · hold X: rear camera<br>W/S: thrust / brake · A/D: full rolls<br>Mouse / arrows: loops · Shift: afterburner<br>C: cockpit · Z: centre aim · M: sound</small>';
   document.querySelector('#game').append(panel,reticle);
   const stats=panel.querySelector('.air-stats'),status=panel.querySelector('.air-status'),board=panel.querySelector('.air-board');
-  const solo=new AirCombat();let enabled=false,online=false,self='solo',snapshot=null,lastShot=0,lastCrash=0,lastPaint=0,lastRespawn=0,lastWarning=0,offset=0;
+  const solo=new AirCombat();let enabled=false,online=false,self='solo',snapshot=null,lastShot=0,lastCrash=0,lastPaint=0,lastRespawn=0,offset=0;
+  const warning=new MissileWarning(()=>hooks.sound?.('warning',physics.chassis.position));
   const mine=()=>snapshot?.pilots.find(p=>p.id===self);
   const now=()=>Date.now()+offset;
   function accept(air){if(!air)return;snapshot=air;offset=air.serverNow-Date.now();hooks.state(air);flightFx.missiles(air.missiles);}
@@ -57,7 +59,7 @@ export function createDogfight(scene,physics,car,hooks) {
     offline(){if(!enabled)return;online=false;self='solo';solo.pilots.clear();const spawn=solo.join(self,'Solo pilot');accept(solo.snapshot());place(spawn);},
     receive,recover,flare,lock,launch,
     update(dt,input,camera,paused) {
-      fx.update(dt);if(!enabled)return;
+      fx.update(dt);if(!enabled){warning.reset();return;}
       const pos=physics.chassis.position;flightFx.update(dt,[...(car.root.visible&&!physics.flight.grounded?[{...pos,q:car.root.quaternion,vehicle:physics.spec.id}]:[]),...hooks.targets()]);
       const p=mine();
       if(physics.flight.crashed&&(p?.hp??100)>0&&Date.now()-lastCrash>500){lastCrash=Date.now();if(online)hooks.crash();else{const destroyed=solo.die(self,physics.chassis.position);receive({t:'airCrash',destroyed,air:solo.snapshot()});}}
@@ -67,11 +69,11 @@ export function createDogfight(scene,physics,car,hooks) {
       if(!paused&&input.fire&&physics.spec.id==='kestrel'&&physics.damage<100&&Date.now()-lastShot>=250){lastShot=Date.now();if(online)hooks.fire(aim.point);else{const q=physics.chassis.quaternion,v={id:self,ready:true,stateAt:Date.now(),vehicle:'kestrel',...physics.chassis.position,qx:q.x,qy:q.y,qz:q.z,qw:q.w};const event=solo.fire(self,new Map([[self,v]]),Date.now(),aim.point);if(event)receive(event);}}
       const visible=car.root.visible&&!paused&&!input.rearView;
       reticle.hidden=!visible;reticle.style.left=`${(aim.screen.x*.5+.5)*100}%`;reticle.style.top=`${(-aim.screen.y*.5+.5)*100}%`;
+      const incoming=warning.update(snapshot,self,{enabled,paused});
+      panel.classList.toggle('incoming',incoming);
       if(Date.now()-lastPaint<100)return;lastPaint=Date.now();
       stats.textContent=`ALT ${Math.round(physics.chassis.position.y)} m · THR ${Math.round(physics.flight.throttle*100)}% · HULL ${mine()?.hp??100}% · GEAR ${physics.flight.gear>.95?'DOWN':physics.flight.gear<.01?'UP':'MOVING'}`;
-      const incoming=snapshot?.missiles?.some(m=>m.target===self&&!m.diverted),pilot=mine();
-      panel.classList.toggle('incoming',!!incoming);
-      if(incoming&&!paused&&Date.now()-lastWarning>900){lastWarning=Date.now();hooks.sound?.('warning',pos);}
+      const pilot=mine();
       const targetName=snapshot?.pilots.find(p=>p.id===pilot?.lockTarget)?.name||'target';
       panel.querySelector('.air-weapons').textContent=`${incoming?'⚠ MISSILE INBOUND — F FLARES! · ':''}Missiles ${pilot?.missiles??4}/4 · Flares ${pilot?.flares??3}/3 · ${pilot?.lockTarget?(pilot.lockReady?`LOCKED: ${targetName} — E to launch`:`LOCKING: ${targetName}...`):'Q to lock'}`;
       const wait=Math.max(0,Math.ceil(((mine()?.respawnAt||0)-now())/1000));

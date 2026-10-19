@@ -46,7 +46,9 @@ test('rear camera is on the opposite side and follows inverted aircraft; labels 
   const p=new THREE.Vector3(0,500,0),q=new THREE.Quaternion().setFromEuler(new THREE.Euler(.3,.4,Math.PI));
   const normal=flightCameraPose(p,q),rear=flightCameraPose(p,q,{rear:true});const forward=new THREE.Vector3(0,0,-1).applyQuaternion(q);
   assert.ok(normal.position.clone().sub(p).dot(forward)<0);assert.ok(rear.position.clone().sub(p).dot(forward)>0);assert.ok(rear.up.y<0);
-  assert.ok(aircraftTagScale(0,true)<.05);assert.ok(aircraftTagScale(120)<.075);assert.ok(aircraftTagScale(1500)<aircraftTagScale(120));
+  assert.equal(aircraftTagScale(0,true),.063);assert.equal(aircraftTagScale(120),.084);
+  assert.equal(aircraftTagScale(0),aircraftTagScale(120));
+  assert.ok(aircraftTagScale(1500)<aircraftTagScale(120));assert.equal(aircraftTagScale(1e9),.0168);
 });
 
 function setup(){const c=new AirCombat();c.join('a','A',0);c.join('b','B',0);const peers=new Map([['a',{x:0,y:500,z:0,qx:0,qy:0,qz:0,qw:1,ready:true,vehicle:'kestrel',stateAt:6000}],['b',{x:0,y:500,z:-1200,qx:0,qy:0,qz:0,qw:1,ready:true,vehicle:'kestrel',stateAt:6000}]]);return {c,peers};}

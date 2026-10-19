@@ -1,5 +1,6 @@
 import { modelOf } from './vehicleModels.js';
 import { defineAircraft } from './aircraftBody.js';
+import { defineClassicBike, defineClassicWheel } from './classicBike.js';
 
 /**
  * The car's shape, defined once as a sequence of calls against an emitter.
@@ -11,6 +12,7 @@ import { defineAircraft } from './aircraftBody.js';
  * a handful of instanced meshes.
  */
 export function defineCarBody(api, options = {}) {
+  if(options.model==='cg125')return defineClassicBike(api);
   if(modelOf(options.model).kind==='aircraft')return defineAircraft(api,options.model);
   if(['rider','swift','vesper','tempest','formula'].includes(options.model))return defineSpecial(api,options.model);
   if (options.model && !['veloce', 'marlin'].includes(options.model)) return defineVariant(api, options);
@@ -271,6 +273,7 @@ function defineVariant({ part, beam, windowQuad }, options) {
 
 // Wheel construction, shared so traffic rolls on the same rims as the player.
 export function defineWheel(api, options = {}) {
+  if(options.model==='cg125')return defineClassicWheel(api);
   const { cylinder, box, torus } = api;
   const detail = options.detail !== false;
   cylinder(0.36, 0.36, 0.235, detail?24:12, 'rubber', 0, 0);

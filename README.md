@@ -2,7 +2,19 @@
 
 A playable web driving sandbox built with Three.js and cannon-es. All city and vehicle geometry is created locally in code; no downloaded game models are required.
 
+## Latest release: CG 125 reference bike
+
+Upload `oversteer-cg125.zip` using the existing **Express / Node 22.x / npm / server.js** configuration. Select **Vehicle → Bikes → CG 125** on a road map. The previous Rider motorcycle remains available; the garage now contains 16 vehicles.
+
+The new red motorcycle is modeled from the supplied side photograph: tapered graphic tank, wing-style badges, long black bench, open wire-spoked wheels, curved chrome fenders, finned single-cylinder engine, twin rear spring shocks, chrome exhaust, mirrors, indicators and seated rider. It is a reference-inspired procedural model, not a scanned or guaranteed exact 1:1 replica. Driving uses the game's existing arcade bike physics; **B + throttle** performs a wheelie.
+
+Local and multiplayer players use identical full-detail CG 125 geometry, merged by material to bound draw calls. There is no reduced-detail remote CG 125. Existing damage, repair, names and wheelie synchronization remain supported. The archive includes all earlier aircraft/missile/name-tag updates and `ZIP_BUILD_GUIDE.md`.
+
+`node scripts/preview-cg125.mjs` generates `artifacts/cg125-preview.png` for side/three-quarter geometry inspection. This is a CPU-rendered model preview, not an in-game WebGL screenshot or FPS measurement. Browser gameplay/performance has not been visually verified for this release.
+
 ## Skyport aircraft and multiplayer dogfights
+
+The `oversteer-aircraft-names.zip` update is included in the latest release. Aircraft name tags (your own and other pilots') are 40% larger than the missile-warning release, while retaining their distance scaling and placement above the aircraft. Road-vehicle labels are unchanged.
 
 Choose **Map → Skyport Air Arena**, or **Vehicle → Aircraft** while offline. Skyport is aircraft-only (enforced in the browser and relay); other maps remain road-vehicle-only. The open 9.6 km airspace has a 3 km runway, airport buildings, river, clouds and distant low-poly mountains. Pilots spawn airborne and can make gentle runway landings. This is assisted arcade flight, not a realistic flight simulator; airport buildings/clouds/mountains are visual scenery, and aircraft do not use rigid-body midair collisions.
 
@@ -25,6 +37,12 @@ Public matchmaking and private room codes work in Skyport. A cannon hit removes 
 The Skyport ground now uses non-overlapping surface tiles instead of stacked grass, runway, taxiway and water sheets. Runway paint uses explicit depth bias, and flight camera near clipping is 2 m in chase view / 0.5 m in cockpit view to improve depth precision over the 11 km viewing range.
 
 Upload **`oversteer-air-combat-v2.zip`** using **Express / Node 22.x / npm / `server.js`** and redeploy. This includes the flight/camera fixes, all 15 vehicles/maps, homing missiles, flares and prebuilt `dist/`. Update the relay too, not just the browser assets. All players should refresh after deployment. Automated tests cover aerobatics, landing/takeoff, rear-camera math, gear meshes, name-tag scales, bounded effects, sound profiles, lock/ammo/flare rules and real WebSocket combat, alongside previous regression tests. No browser visual or speaker/audio play-test was performed.
+
+### Incoming missile warning update
+
+The warning update was released in `oversteer-missile-warning.zip` and is included in newer archives (same Express / Node 22.x / `server.js` settings). The targeted pilot gets an immediate two-tone cockpit warning, repeating every 650 ms while an undiverted missile is incoming. Other players do not hear that cockpit warning. Flares, missile removal, death or leaving flight mode stop further warning bursts. The HUD also highlights **MISSILE INBOUND — F FLARES!**. Sound must be enabled (**M**) and the game clicked once to unlock browser audio; mute/volume and pause settings remain respected. This uses browser audio only and adds no server simulation load. Automated tests cover warning cadence, targeting, diversion, lifecycle and audio-node scheduling/cleanup; actual speaker playback has not been tested.
+
+The new ZIP also includes `ZIP_BUILD_GUIDE.md` with exact packaging instructions for future developers/AIs.
 
 ## Scooters and vehicle categories
 

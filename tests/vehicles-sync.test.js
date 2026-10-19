@@ -10,7 +10,7 @@ import {gridRoute} from '../src/route.js';
 import {npcPose,cleanDents,damageNPC} from '../src/sharedTrafficRules.js';
 import {isTwoWheeler, VEHICLE_CATEGORIES, categoryOf, matchesCategory} from '../src/vehicleModels.js';
 
-for (const id of ['rider','swift','vesper']) test(`${id} wheelie raises the visible front wheel/rider, preserves the rear pivot and lands on release`,()=>{
+for (const id of ['rider','cg125','swift','vesper']) test(`${id} wheelie raises the visible front wheel/rider, preserves the rear pivot and lands on release`,()=>{
   const physics=new DrivingPhysics(id),scene=new THREE.Scene(),car=createCar(scene);car.setProfile(VEHICLES[id]);
   for(let i=0;i<720;i++)physics.step({forward:true,wheelie:true});
   assert.ok(physics.forwardSpeed>5);assert.ok(physics.wheelie>.5);assert.ok(physics.chassis.position.y>0&&physics.chassis.position.y<2);
@@ -22,7 +22,7 @@ for (const id of ['rider','swift','vesper']) test(`${id} wheelie raises the visi
 });
 
 test('local and remote vehicle meshes have low draw counts and replay/clear visible dents',()=>{
-  for(const id of ['rider','swift','vesper','tempest','formula','veloce']) {
+  for(const id of ['rider','cg125','swift','vesper','tempest','formula','veloce']) {
     const scene=new THREE.Scene(),local=createCar(scene),remote=createCar(scene,{simple:true});local.setProfile(VEHICLES[id]);remote.setProfile(VEHICLES[id]);
     let meshes=0;remote.root.traverse(n=>{if(n.isMesh)meshes++;});remote.wheels.forEach(w=>w.traverse(n=>{if(n.isMesh)meshes++;}));assert.ok(meshes<=28,`${id}: ${meshes} meshes`);
     const panel=remote.root.children[0].children.find(n=>n.material===remote.paint),before=panel.geometry.attributes.position.array.slice();
@@ -34,7 +34,7 @@ test('local and remote vehicle meshes have low draw counts and replay/clear visi
 });
 
 test('vehicle categories cover every model once and keep both scooters distinct from motorcycles',()=>{
-  const expected={cars:5,racing:4,bikes:1,scooters:2,aircraft:3};
+  const expected={cars:5,racing:4,bikes:2,scooters:2,aircraft:3};
   for(const [category,count] of Object.entries(expected)) {
     assert.ok(VEHICLE_CATEGORIES[category]);
     assert.equal(Object.keys(VEHICLES).filter(id=>matchesCategory(id,category)).length,count);

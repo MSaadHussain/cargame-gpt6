@@ -39,9 +39,17 @@ export class EngineAudio {
   aircraftEvent(kind,attenuation=1) {
     if(!this.enabled||!this.context||this.paused)return;
     if(kind==='warning') {
-      const ctx=this.context,t=ctx.currentTime,osc=ctx.createOscillator(),gain=ctx.createGain();
-      osc.type='sine';osc.frequency.value=880;gain.gain.setValueAtTime(this.volume*.15,t);gain.gain.exponentialRampToValueAtTime(.001,t+.16);
-      osc.connect(gain);gain.connect(ctx.destination);osc.start(t);osc.stop(t+.16);osc.onended=()=>{osc.disconnect();gain.disconnect();};return;
+      const ctx=this.context,t=ctx.currentTime;
+      // Distinct cockpit double-beep, not distance-attenuated world audio.
+      for(const [delay,frequency] of [[0,1100],[.18,1500]]) {
+        const start=t+delay,osc=ctx.createOscillator(),gain=ctx.createGain();
+        osc.type='sine';osc.frequency.value=frequency;
+        gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(this.volume*.65,start+.008);
+        gain.gain.setValueAtTime(this.volume*.65,start+.09);gain.gain.linearRampToValueAtTime(0,start+.14);
+        osc.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(start+.15);
+        osc.onended=()=>{osc.disconnect();gain.disconnect();};
+      }
+      return;
     }
     const ctx=this.context,t=ctx.currentTime,duration=kind==='explosion'?.65:kind==='gear'?.35:.16;
     const buffer=ctx.createBuffer(1,Math.floor(ctx.sampleRate*duration),ctx.sampleRate),data=buffer.getChannelData(0);

@@ -5,4 +5,5 @@ const SPECS={
   sparrow:{pitchRate:1.6,rollRate:3,yawRate:.7,maxSpeed:105,stallSpeed:28,landingSpeed:48,gearHeight:1.5,gearRadius:.32,gearWidth:1.1,gearFront:-1.7,gearRear:1.8,engine:'prop'},
 };
 export const aircraftSpec=id=>SPECS[id]||SPECS.kestrel;
-export const aircraftTagScale=(distance,own=false)=>own?.045:Math.max(.012,Math.min(.06,.06*Math.sqrt(120/Math.max(120,distance))));
+// Slightly larger labels for readability; preserve distance falloff and compact sizing.
+export const aircraftTagScale=(distance,own=false)=>own?.063:Math.max(.0168,Math.min(.084,.084*Math.sqrt(120/Math.max(120,distance))));

@@ -15,6 +15,10 @@ export function carMaterials(paintColor = '#67877d') {
     rubber: new THREE.MeshStandardMaterial({ color: '#1e2423', roughness: 0.93 }),
     red: new THREE.MeshStandardMaterial({ color: '#972b23', emissive: '#ff3722', emissiveIntensity: 0.32, roughness: 0.3 }),
     headlight: new THREE.MeshStandardMaterial({ color: '#efe8c8', emissive: '#ffedb1', emissiveIntensity: 0.55, roughness: 0.25 }),
+    decalGold: new THREE.MeshStandardMaterial({color:'#ffd336',roughness:.38,metalness:.15}),
+    decalWhite: new THREE.MeshStandardMaterial({color:'#f3f4ee',roughness:.4}),
+    decalCyan: new THREE.MeshStandardMaterial({color:'#50bedd',roughness:.4,metalness:.1}),
+    signal: new THREE.MeshStandardMaterial({color:'#f7a028',emissive:'#ed660a',emissiveIntensity:.15,roughness:.3}),
   };
 }
 
@@ -64,6 +68,7 @@ export function createCarGeometry(options = {}) {
   };
   const matrix = new THREE.Matrix4();
   defineCarBody({
+    geometry(geo,key) { push(key,geo); },
     part(w, h, d, x, y, z, key, round = 0, damageable = false, extra = {}) {
       const geo = extra.cylinder ? new THREE.CylinderGeometry(w/2,w/2,d,12).rotateX(Math.PI/2) : partGeometry(w, h, d, round, damageable && options.damageDetail, 1);
       matrix.identity();
@@ -97,6 +102,7 @@ export function createCarGeometry(options = {}) {
     wheelBuckets.get(key).push(geo);
   };
   defineWheel({
+    geometry(geo,key) { wheelPush(key,normalize(geo)); },
     cylinder(rt, rb, h, seg, key, x) {
       const geo = new THREE.CylinderGeometry(rt, rb, h, seg); geo.rotateZ(Math.PI / 2); geo.translate(x, 0, 0); wheelPush(key, geo);
     },
