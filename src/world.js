@@ -1,10 +1,28 @@
 import * as THREE from 'three';
 import { ovalRoute, gridRoute } from './route.js';
+import { buildRaceWorld } from './raceWorld.js';
+import { gridSlot } from './circuit.js';
+import { SceneryStream } from './sceneryStream.js';
+import { StaticBatches } from './staticBatches.js';
+import { buildFlightWorld } from './flightWorld.js';
+import { flightSpawn } from './flight.js';
 
 let seed = 921;
 function random() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
 
 export const MAPS = {
+  skyport: {
+    id:'skyport',name:'Skyport Air Arena',kind:'Aircraft only · 9.6 km airspace',
+    blurb:'Long airport runway, open skies and multiplayer dogfights. Fighter jets and 777-inspired airliners only.',
+    location:'Skyport Air Arena',weather:'Clear skies · Flight ceiling 1,800 m',
+    spawn:flightSpawn(),traffic:0,swatch:['#7ab1d0','#d9e5e7','#3e4b56'],
+  },
+  apex: {
+    id: 'apex', name: 'Apex Grand Prix', kind: '5.4 km race circuit',
+    blurb: 'Silverstone-inspired sweepers, technical esses, boost lanes and three-lap multiplayer racing.',
+    location: 'Apex Grand Prix', weather: 'Race day · Clear',
+    spawn: gridSlot(0), traffic: 0, swatch: ['#424b50', '#168d99', '#cf574b'],
+  },
   portside: {
     id: 'portside', name: 'Portside District', kind: 'City circuit',
     blurb: 'Tight streets, curbs to clip and freight to dodge. The original sandbox.',
@@ -25,11 +43,12 @@ export const MAPS = {
  * Shared construction toolkit. Everything a map builds goes through here so the
  * whole map can be torn down in one call when the player switches.
  */
-function createBuilder(scene, physics) {
+function createBuilder(scene, physics, spatial = false) {
   const batches = new Map();
   const materials = new Map();
   const owned = { meshes: [], geometries: [], materials: [], textures: [] };
   const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+  const spatialBatches = spatial ? new StaticBatches(boxGeometry) : null;
   const temp = new THREE.Object3D();
   owned.geometries.push(boxGeometry);
 
@@ -42,18 +61,18 @@ function createBuilder(scene, physics) {
     return materials.get(key);
   }
   function box(x, y, z, w, h, d, color, collision = false, angle = 0) {
-    if (!batches.has(color)) batches.set(color, []);
     temp.position.set(x, y, z); temp.rotation.set(0, angle, 0); temp.scale.set(w, h, d); temp.updateMatrix();
-    batches.get(color).push(temp.matrix.clone());
+    if(spatialBatches) spatialBatches.add(temp.matrix,color,h>=1.5);
+    else { if (!batches.has(color)) batches.set(color, []); batches.get(color).push(temp.matrix.clone()); }
     if (collision) physics.addBox(x, y, z, w, h, d, { angle });
   }
   function attach(mesh) { scene.add(mesh); owned.meshes.push(mesh); return mesh; }
   function sign(text, x, y, z, w, h, bg = '#e3ddc9', fg = '#35423b', angle = 0) {
-    const canvas = document.createElement('canvas'); canvas.width = 1024; canvas.height = 256;
+    const canvas = document.createElement('canvas'); canvas.width = spatial ? 512 : 1024; canvas.height = spatial ? 128 : 256;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, 1024, 256);
-    ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = 'bold 100px Arial';
-    ctx.fillText(text, 512, 132, 950);
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `bold ${spatial?50:100}px Arial`;
+    ctx.fillText(text, canvas.width/2, canvas.height*.516, canvas.width*.928);
     const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
     const geo = new THREE.PlaneGeometry(w, h);
     const mat = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.9 });
@@ -79,8 +98,13 @@ function createBuilder(scene, physics) {
     if (!treeSpots.length) return;
     const geo = new THREE.IcosahedronGeometry(1, 1);
     owned.geometries.push(geo);
-    for (let start = 0; start < treeSpots.length; start += TREE_CHUNK) {
-      const chunk = treeSpots.slice(start, start + TREE_CHUNK);
+    const chunks=[];
+    if(spatial) {
+      const cells=new Map();
+      for(const spot of treeSpots) {const key=`${Math.floor(spot.x/128)},${Math.floor(spot.z/128)}`;if(!cells.has(key))cells.set(key,[]);cells.get(key).push(spot);}
+      chunks.push(...cells.values());
+    } else for(let start=0;start<treeSpots.length;start+=TREE_CHUNK)chunks.push(treeSpots.slice(start,start+TREE_CHUNK));
+    for (const chunk of chunks) {
       const castShadow = chunk.some(spot => spot.shadow);
       for (const [layer, tint] of [[0, '#6b805c'], [1, '#7d8d65'], [2, '#6b805c']]) {
         const mesh = new THREE.InstancedMesh(geo, material(tint, 0.88), chunk.length);
@@ -103,6 +127,7 @@ function createBuilder(scene, physics) {
     box(x, 0.5, z, 0.5, 0.8, 0.5, '#8f9486');
   }
   function flushBatches() {
+    if(spatialBatches) {spatialBatches.flush(attach,own);return;}
     for (const [color, matrices] of batches) {
       const mesh = new THREE.InstancedMesh(boxGeometry, material(color), matrices.length);
       matrices.forEach((m, i) => mesh.setMatrixAt(i, m));
@@ -465,16 +490,20 @@ function addMountains(b, count, z, y, radius = 65, height = 30) {
 export function buildWorld(scene, physics, mapId = 'portside') {
   seed = 921;
   const definition = MAPS[mapId] || MAPS.portside;
-  const b = createBuilder(scene, physics);
-  const built = definition.id === 'coastline'
+  const b = createBuilder(scene, physics, ['apex','skyport'].includes(definition.id));
+  const built = definition.id === 'skyport' ? buildFlightWorld(b) : definition.id === 'apex' ? buildRaceWorld(b) : definition.id === 'coastline'
     ? buildCoastline(scene, physics, b)
     : buildPortside(scene, physics, b);
   b.flushTrees();
   b.flushBatches();
+  const stream=definition.id==='apex'?new SceneryStream(physics.world,physics.scenery):null;
+  stream?.update(definition.spawn,true);
 
   return {
     ...built,
     map: definition,
+    update(position) {stream?.update(position);},
+    performanceStats() {return {sceneryTotal:stream?.bodies.length??physics.scenery.length,sceneryActive:stream?.active.size??physics.scenery.length};},
     resetProps() {
       for (const p of built.dynamics) {
         p.body.position.copy(p.origin); p.body.quaternion.set(0, 0, 0, 1);
@@ -482,6 +511,7 @@ export function buildWorld(scene, physics, mapId = 'portside') {
       }
     },
     dispose() {
+      stream?.dispose();
       for (const mesh of b.owned.meshes) scene.remove(mesh);
       for (const geometry of b.owned.geometries) geometry.dispose();
       for (const material of b.owned.materials) material.dispose();

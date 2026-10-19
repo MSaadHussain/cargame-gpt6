@@ -44,6 +44,7 @@ export class Traffic {
       const car = this.cars.pop();
       car.vehicle.removeFromWorld(this.physics.world);
       this.physics.world.removeBody(car.body);
+      const stored=this.physics.scenery.indexOf(car.body);if(stored>=0)this.physics.scenery.splice(stored,1);
     }
     while (this.cars.length < target) this.spawn(this.cars.length / Math.max(1, target));
     for (const mesh of Object.values(this.bodyMeshes)) mesh.count = target;
@@ -145,6 +146,7 @@ export class Traffic {
     for (const car of this.cars) {
       car.vehicle.removeFromWorld(this.physics.world);
       this.physics.world.removeBody(car.body);
+      const stored=this.physics.scenery.indexOf(car.body);if(stored>=0)this.physics.scenery.splice(stored,1);
     }
     for (const mesh of [...Object.values(this.bodyMeshes), ...Object.values(this.wheelMeshes)]) this.scene.remove(mesh);
     for (const geometry of this.geometries) geometry.dispose();

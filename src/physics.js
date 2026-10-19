@@ -1,4 +1,6 @@
 import * as CANNON from 'cannon-es';
+import { modelOf, isTwoWheeler, isAircraft } from './vehicleModels.js';
+import { resetFlight, stepFlight, flightSpawn } from './flight.js';
 
 export const SPAWN = { x: -5.2, y: 1.05, z: 34 };
 export const FIXED_STEP = 1 / 120;
@@ -28,6 +30,22 @@ export const VEHICLES = {
     blurb: 'Long bonnet, lazy torque, and a tail that leaves before you do. Heavier, softer, and far easier to light up.',
   },
 };
+
+for (const spec of [
+  {id:'sparrow',name:'Sparrow',badge:'S-2',mass:900,peakTorque:250,engine:'Radial prop',drivetrain:'THRUST',paint:'#e6a82f',paintName:'Sunburst yellow',blurb:'Agile aerobatic biplane with twin wings and a spinning propeller. Full loops/rolls; H gear, X rear view, G flares. Unarmed.'},
+  {id:'kestrel',name:'Kestrel',badge:'F-27',mass:12000,peakTorque:1000,engine:'Jet turbine',drivetrain:'THRUST',paint:'#778c99',paintName:'Storm grey',blurb:'Low-poly fighter with swept wings and twin tails. Skyport only. Mouse aim, Mouse 1 cannon, W/S thrust, A/D bank, Shift afterburner.'},
+  {id:'skyliner',name:'Skyliner',badge:'777',mass:180000,peakTorque:1000,engine:'Twin turbofan',drivetrain:'THRUST',paint:'#e7ecf1',paintName:'Airline white',blurb:'Boeing 777-inspired twin-engine airliner with swept wings and cabin windows. Skyport only; unarmed, slower turning and heavy.'},
+  {id:'swift',name:'Swift',badge:'GT 350',mass:270,peakTorque:72,engine:'Scooter single',drag:.25,final:4.1,engineBrake:7,brakeFront:8,brakeRear:5,handbrake:12,suspensionStiffness:35,rollInfluence:.04,transferGain:.08,gripFront:3.2,gripRear:3.5,paint:'#aeb7c4',paintName:'Satin silver',blurb:'Sporty maxi scooter with silver fairings, twin lamps, windscreen and stepped seat. Seated rider; hold B with throttle to wheelie.'},
+  {id:'vesper',name:'Vesper',badge:'125',mass:220,peakTorque:54,engine:'Scooter single',drag:.23,final:4.4,engineBrake:6,brakeFront:7,brakeRear:4,handbrake:10,suspensionStiffness:35,rollInfluence:.04,transferGain:.08,gripFront:3.2,gripRear:3.5,paint:'#008eaf',paintName:'Lagoon blue',blurb:'Rounded retro scooter with blue leg shield, handlebar headlamp, black bench and classic mirrors. Seated rider; B + throttle for wheelies.'},
+  {id:'tempest',name:'Tempest',badge:'V12',mass:1480,peakTorque:610,engine:'V12',drag:.4,final:3.9,suspensionStiffness:38,gripFront:3.2,gripRear:3.5,paint:'#e3c32b',blurb:'Lamborghini-inspired wedge supercar. Wide intakes, low cockpit and a V12 soundtrack.'},
+  {id:'formula',name:'Formula',badge:'R1',mass:820,peakTorque:380,engine:'V6 race',drag:.48,final:3.7,suspensionStiffness:42,gripFront:3.8,gripRear:4.1,brakeFront:28,brakeRear:18,paint:'#cb3434',blurb:'Open-wheel, single-seat racer with front wing, rear wing and helmeted driver.'},
+  {id:'rider',name:'Rider',badge:'900',mass:300,peakTorque:90,engine:'I3 bike',drag:.23,final:3.8,engineBrake:8,brakeFront:8,brakeRear:5,handbrake:12,suspensionStiffness:35,rollInfluence:.04,transferGain:.08,gripFront:3.2,gripRear:3.5,paint:'#303638',blurb:'Low-poly classic motorcycle: round lamp, spoked wheels, chrome exhaust and seated rider. Hold B with throttle for a wheelie.'},
+  { id: 'comet', name: 'Comet Hatch', badge: 'S', mass: 1080, peakTorque: 225, engine: 'I4 turbo', drag: .48, final: 4.6, gripRear: 3.1, paint: '#dab453', paintName: 'Sunburst', blurb: 'Short wheelbase, light body, quick changes of direction. A compact street hatch.' },
+  { id: 'viper', name: 'Viper Coupe', badge: 'GT', mass: 1360, peakTorque: 410, engine: 'V6 turbo', suspensionStiffness: 34, gripFront: 2.9, gripRear: 3.3, drag: .43, final: 4.3, paint: '#3b79a5', paintName: 'Ocean blue', blurb: 'Low roof, wide stance, front splitter and rear wing. Built for the coastal straights.' },
+  { id: 'nomad', name: 'Nomad SUV', badge: 'LX', mass: 2180, peakTorque: 490, engine: 'V8', suspensionStiffness: 38, brakeFront: 49, brakeRear: 30, drag: .85, final: 5.5, paint: '#56634d', paintName: 'Forest green', blurb: 'A tall, squared-off utility body with roof rails and a rear spare. Heavy but composed.' },
+  { id: 'hauler', name: 'Hauler Pickup', badge: 'XT', mass: 2320, peakTorque: 540, engine: 'V8', suspensionStiffness: 40, brakeFront: 52, brakeRear: 30, drag: .9, final: 5.7, paint: '#b07545', paintName: 'Copper', blurb: 'A long-wheelbase truck with a separate cab and open cargo bed. Give it space to turn.' },
+  { id: 'falcon', name: 'Falcon Rally', badge: 'RS', mass: 1230, peakTorque: 335, engine: 'I4 turbo', suspensionStiffness: 30, gripFront: 2.85, gripRear: 3.2, final: 5.3, paint: '#d5dbd7', paintName: 'Rally white', blurb: 'Short gearing, hood scoop, spotlights and a rally wing. Rear-drive and ready to slide.' },
+]) VEHICLES[spec.id] = { ...VEHICLES.veloce, ...spec };
 
 // Normalized torque curve: peaks past mid-range, still pulling at the top.
 function torqueCurve(x) { return clamp(1.04 - 1.55 * (x - 0.6) ** 2, 0, 1.1); }
@@ -81,10 +99,26 @@ export class DrivingPhysics {
 
   // Swapping cars reuses the same body, so world references and listeners stay valid.
   applySpec(spec) {
+    const airborne=isAircraft(spec.id);
+    if(airborne&&!this.flightMode){this.vehicle.removeFromWorld(this.world);this.world.addBody(this.chassis);}
+    else if(!airborne&&this.flightMode){this.world.removeBody(this.chassis);this.vehicle.addToWorld(this.world);}
+    this.flightMode=airborne;
+    this.chassis.type=airborne?CANNON.Body.KINEMATIC:CANNON.Body.DYNAMIC;
+    this.chassis.collisionFilterMask=airborne?0:-1;
     this.spec = spec;
+    const model = modelOf(spec.id);
+    const shape = this.chassis.shapes[0];
+    shape.halfExtents.set(model.width / 2, .27, model.length / 2);
+    shape.updateConvexPolyhedronRepresentation(); shape.updateBoundingSphereRadius();
+    const cabin = this.chassis.shapes[1];
+    cabin.halfExtents.set(model.width * .4, (model.roof - .48) / 2, (model.cabinRear + 1.14) / 2);
+    cabin.updateConvexPolyhedronRepresentation(); cabin.updateBoundingSphereRadius();
+    this.chassis.shapeOffsets[1].set(0, (model.roof + .48) / 2, (model.cabinRear - 1.14) / 2);
+    this.chassis.updateBoundingRadius(); this.chassis.aabbNeedsUpdate = true;
     this.chassis.mass = spec.mass;
     this.chassis.updateMassProperties();
-    for (const wheel of this.vehicle.wheelInfos) {
+    for (const [i, wheel] of this.vehicle.wheelInfos.entries()) {
+      wheel.chassisConnectionPointLocal.set((i % 2 ? 1 : -1) * model.width * .492, .08, (i < 2 ? -1 : 1) * model.wheelbase / 2);
       wheel.suspensionStiffness = spec.suspensionStiffness;
       wheel.dampingRelaxation = spec.dampingRelaxation;
       wheel.dampingCompression = spec.dampingCompression;
@@ -166,10 +200,13 @@ export class DrivingPhysics {
 
   step(input, dt = FIXED_STEP) {
     this.time += dt;
+    if(this.flightMode){stepFlight(this,input,dt);return;}
     const spec = this.spec;
     const { steer: steerAxis, throttle: throttleAxis, brake: brakeAxis, handbrake } = DrivingPhysics.axes(input);
     const speed = this.forwardSpeed;
     const absSpeed = this.chassis.velocity.length();
+    const wheelieTarget=isTwoWheeler(spec.id)&&input.wheelie&&throttleAxis>0&&speed>3&&!brakeAxis ? .65:0;
+    this.wheelie+=(wheelieTarget-this.wheelie)*Math.min(1,dt*(wheelieTarget?3:5));
 
     const steerTarget = steerAxis * (spec.steerLock / (1 + absSpeed * spec.steerFalloff));
     this.steer += (steerTarget - this.steer) * Math.min(1, dt * 7);
@@ -239,7 +276,7 @@ export class DrivingPhysics {
     }
 
     // Pitch the body so the suspension visibly dives under braking and squats on power.
-    if (Math.abs(accel) > 0.05) {
+    if (!isTwoWheeler(spec.id) && Math.abs(accel) > 0.05) {
       const right = this.chassis.quaternion.vmult(new CANNON.Vec3(1, 0, 0));
       const magnitude = clamp(accel, -12, 12) * this.chassis.mass * 0.24;
       this.chassis.torque.x += right.x * magnitude;
@@ -249,12 +286,21 @@ export class DrivingPhysics {
 
     // Quadratic aerodynamic drag, independent of frame rate.
     if (absSpeed > 0.01) this.chassis.applyForce(this.chassis.velocity.scale(-spec.drag * absSpeed));
+    if(isTwoWheeler(spec.id)) {
+      // Arcade balance assist: hidden paired tyre rays keep the lightweight bike
+      // stable. The rider/front-wheel lift is rendered around the rear contact.
+      const f=this.chassis.quaternion.vmult(new CANNON.Vec3(0,0,-1));
+      this.chassis.quaternion.setFromEuler(0,Math.atan2(-f.x,-f.z),0);
+      this.chassis.angularVelocity.x=0;this.chassis.angularVelocity.z=0;
+      this.chassis.torque.x=0;this.chassis.torque.z=0;
+    }
     this.world.step(dt);
     this.distance += absSpeed * dt;
     if (this.chassis.position.y < -8) this.reset(false);
   }
 
   reset(repair = true) {
+    resetFlight(this);
     this.chassis.position.set(SPAWN.x, SPAWN.y, SPAWN.z);
     this.chassis.quaternion.set(0, 0, 0, 1);
     this.chassis.velocity.setZero();
@@ -268,6 +314,7 @@ export class DrivingPhysics {
     this.chassis.aabbNeedsUpdate = true;
     this.chassis.wakeUp();
     this.steer = 0;
+    this.wheelie = 0;
     this.gear = 0;
     this.rpm = this.spec.idleRpm;
     this.shiftTimer = 0;
@@ -284,13 +331,15 @@ export class DrivingPhysics {
       this.vehicle.wheelInfos[i].rotation = 0;
     }
     if (repair) this.damage = 0;
+    if(this.flightMode){const p=flightSpawn();this.chassis.position.set(p.x,p.y,p.z);}
   }
 
   // Used when a map defines its own start line.
-  placeAt(x, z, heading = 0) {
+  placeAt(x, z, heading = 0, y) {
     this.reset(false);
-    this.chassis.position.set(x, SPAWN.y, z);
+    this.chassis.position.set(x, y ?? (this.flightMode?260:SPAWN.y), z);
     this.chassis.quaternion.setFromEuler(0, heading, 0);
+    this.flight.heading=heading;
     this.chassis.previousPosition.copy(this.chassis.position);
     this.chassis.interpolatedPosition.copy(this.chassis.position);
     this.chassis.previousQuaternion.copy(this.chassis.quaternion);

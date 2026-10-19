@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { defineCarBody, defineWheel } from './carBody.js';
+import { modelOf, isTwoWheeler, isAircraft } from './vehicleModels.js';
+import { createAircraftParts } from './aircraftVisual.js';
 
 export function carMaterials(paintColor = '#67877d') {
   return {
@@ -63,7 +65,7 @@ export function createCarGeometry(options = {}) {
   const matrix = new THREE.Matrix4();
   defineCarBody({
     part(w, h, d, x, y, z, key, round = 0, damageable = false, extra = {}) {
-      const geo = partGeometry(w, h, d, round, false, 1);
+      const geo = extra.cylinder ? new THREE.CylinderGeometry(w/2,w/2,d,12).rotateX(Math.PI/2) : partGeometry(w, h, d, round, damageable && options.damageDetail, 1);
       matrix.identity();
       if (extra.rotateX) matrix.makeRotationX(extra.rotateX);
       matrix.setPosition(x, y, z);
@@ -76,6 +78,10 @@ export function createCarGeometry(options = {}) {
       push(key, geo);
     },
     windowQuad(points) { push('glass', quadGeometry(points)); },
+    panel(points,key) {
+      // Both faces: wings remain visible from above and below without global double-sided paint.
+      push(key,quadGeometry(points));push(key,quadGeometry([...points].reverse()));
+    },
   }, options);
 
   const body = {};
@@ -110,156 +116,78 @@ export function createCarGeometry(options = {}) {
   return { body, wheel };
 }
 
-export function createCar(scene) {
-  const root = new THREE.Group(); scene.add(root);
-  const deformables = [];
-  const materials = carMaterials();
-  const { paint, dark, trim, chrome, glass, rubber, red, headlight } = materials;
-  const pick = key => materials[key];
-
-  function part(w, h, d, x, y, z, key, round = 0, damageable = false, extra = {}) {
-    const geo = partGeometry(w, h, d, round, damageable);
-    const mesh = new THREE.Mesh(geo, pick(key));
-    mesh.position.set(x, y, z);
-    if (extra.rotateX) mesh.rotation.x = extra.rotateX;
-    mesh.castShadow = true; mesh.receiveShadow = true; root.add(mesh);
-    if (damageable) deformables.push({ mesh, original: geo.attributes.position.array.slice() });
-    return mesh;
+export function createCar(scene, { simple = false } = {}) {
+  const root=new THREE.Group(),shell=new THREE.Group();root.add(shell);scene.add(root);
+  const materials=carMaterials(),paint=materials.paint,wheels=[],deformables=[];
+  let profileId='veloce',cockpit=false,dents=[],damageKey='',wheelAngle=0,aircraftParts=null;
+  const steering=new THREE.Group();root.add(steering);
+  const poseQ=new THREE.Quaternion(),offset=new THREE.Vector3(),pivot=new THREE.Vector3(),rotated=new THREE.Vector3();
+  const hit=new THREE.Vector3(),inward=new THREE.Vector3();
+  for(let i=0;i<4;i++){const wheel=new THREE.Group();wheels.push(wheel);scene.add(wheel);}
+  function rebuild() {
+    if(aircraftParts){const old=new Set();aircraftParts.root.traverse(n=>{if(n.geometry)old.add(n.geometry);});old.forEach(g=>g.dispose());aircraftParts.root.removeFromParent();aircraftParts=null;}
+    const old=new Set();for(const object of [shell,...wheels]){object.traverse(n=>{if(n.geometry)old.add(n.geometry);});object.clear();}old.forEach(g=>g.dispose());
+    deformables.length=0;dents=[];damageKey='';
+    const geometry=createCarGeometry({model:profileId,interior:!simple,detail:!simple,damageDetail:true});
+    for(const [key,geo] of Object.entries(geometry.body)){
+      const mesh=new THREE.Mesh(geo,materials[key]);mesh.castShadow=true;mesh.receiveShadow=true;shell.add(mesh);
+      if(key==='paint'||key==='chrome'||key==='trim'||key==='glass')deformables.push({mesh,original:geo.attributes.position.array.slice()});
+    }
+    for(const wheel of wheels)for(const [key,geo] of Object.entries(geometry.wheel)){const mesh=new THREE.Mesh(geo,materials[key]);mesh.castShadow=!simple;wheel.add(mesh);}
+    if(isAircraft(profileId)){aircraftParts=createAircraftParts(profileId,materials);root.add(aircraftParts.root);}
+    updateVisibility();
   }
-  const windows = {};
-  function windowQuad(points, name) {
-    const geo = quadGeometry(points);
-    const mesh = new THREE.Mesh(geo, glass); root.add(mesh);
-    deformables.push({ mesh, original: geo.attributes.position.array.slice() });
-    if (name) windows[name] = mesh;
-    return mesh;
+  function updateVisibility() {
+    for(const mesh of shell.children)if(mesh.material===materials.glass)mesh.visible=!cockpit;
+    const bike=isTwoWheeler(profileId);wheels.forEach((w,i)=>{w.visible=!isAircraft(profileId)&&(!bike||i%2===0);w.scale.set(bike?.65:profileId==='formula'?1.5:1,1,1);});
   }
-  function beam(a, b, width, key) {
-    const { geo, position, quaternion } = beamTransform(a, b, width);
-    const mesh = new THREE.Mesh(geo, pick(key));
-    mesh.position.copy(position); mesh.quaternion.copy(quaternion);
-    mesh.castShadow = true; root.add(mesh); return mesh;
-  }
-  defineCarBody({ part, beam, windowQuad });
-
-  const plateCanvas = document.createElement('canvas'); plateCanvas.width = 256; plateCanvas.height = 96;
-  const ctx = plateCanvas.getContext('2d');
-  function drawPlate(text) {
-    ctx.fillStyle = '#e7e3d0'; ctx.fillRect(0, 0, 256, 96);
-    ctx.fillStyle = '#384941'; ctx.font = 'bold 43px monospace'; ctx.textAlign = 'center';
-    ctx.fillText(text, 128, 61);
-  }
-  drawPlate('OVR-1986');
-  const plateTexture = new THREE.CanvasTexture(plateCanvas); plateTexture.colorSpace = THREE.SRGBColorSpace;
-  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.21, 0.026), new THREE.MeshStandardMaterial({ map: plateTexture, roughness: 0.5 }));
-  plate.position.set(0, 0.37, 2.216); root.add(plate);
-
-  // Instrument panel and steering wheel, visible from the cockpit camera.
-  const steering = new THREE.Group(); steering.position.set(-0.43, 0.68, -0.59); steering.rotation.x = -0.24; root.add(steering);
-  steering.add(new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.025, 8, 32), dark));
-  steering.add(new THREE.Mesh(new THREE.BoxGeometry(0.29, 0.048, 0.06), dark));
-  const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.16, 0.04), chrome); spoke.position.y = -0.09; steering.add(spoke);
-  const instrument = new THREE.Mesh(new THREE.PlaneGeometry(0.33, 0.12), new THREE.MeshBasicMaterial({ color: '#25352d' }));
-  instrument.position.set(-0.43, 0.655, -0.658); root.add(instrument);
-  for (const x of [-0.51, -0.36]) {
-    const gauge = new THREE.Mesh(new THREE.RingGeometry(0.043, 0.047, 24), chrome); gauge.position.set(x, 0.65, -0.651); root.add(gauge);
-  }
-
-  const wheels = [];
-  for (let i = 0; i < 4; i++) {
-    const wheel = new THREE.Group();
-    defineWheel({
-      cylinder(rt, rb, h, seg, key, x) {
-        const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), pick(key));
-        mesh.rotation.z = Math.PI / 2; mesh.position.x = x; wheel.add(mesh);
-      },
-      box(w, h, d, x, rotation, key) {
-        const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), pick(key));
-        mesh.position.x = x; mesh.rotation.x = rotation; wheel.add(mesh);
-      },
-      torus(r, tube, rs, ts, key, x) {
-        const mesh = new THREE.Mesh(new THREE.TorusGeometry(r, tube, rs, ts), pick(key));
-        mesh.rotation.y = Math.PI / 2; mesh.position.x = x; wheel.add(mesh);
-      },
-    });
-    wheel.traverse(o => { if (o.isMesh) o.castShadow = true; });
-    wheels.push(wheel); scene.add(wheel);
-  }
-
-  // Deformation works on cached local-space vertices, so an impact costs one
-  // pass over the panels with no per-vertex matrix work or allocation.
-  for (const entry of deformables) {
-    entry.mesh.updateMatrix();
-    const count = entry.mesh.geometry.attributes.position.count;
-    entry.carSpace = new Float32Array(count * 3);
-    const v = new THREE.Vector3();
-    for (let i = 0; i < count; i++) {
-      v.fromBufferAttribute(entry.mesh.geometry.attributes.position, i).applyMatrix4(entry.mesh.matrix);
-      entry.carSpace[i * 3] = v.x; entry.carSpace[i * 3 + 1] = v.y; entry.carSpace[i * 3 + 2] = v.z;
+  function applyDent(point,severity) {
+    if(!severity)return;hit.set(point.x,point.y,point.z);inward.set(-hit.x,.07,-hit.z).normalize();
+    for(const entry of deformables){
+      const positions=entry.mesh.geometry.attributes.position,base=entry.original;let touched=false;
+      for(let i=0;i<positions.count;i++){
+        const x=base[i*3],y=base[i*3+1],z=base[i*3+2],distance=Math.hypot(x-hit.x,y-hit.y,z-hit.z);
+        if(distance>=1.6)continue;
+        const amount=(1-distance/1.6)**2*severity;
+        positions.setXYZ(i,positions.getX(i)+inward.x*amount,positions.getY(i)+amount*(.07+Math.sin(x*24+z*17)*.12),positions.getZ(i)+inward.z*amount);touched=true;
+      }
+      if(touched){positions.needsUpdate=true;entry.mesh.geometry.computeVertexNormals();entry.mesh.geometry.computeBoundingSphere();}
     }
   }
-
-  const hit = new THREE.Vector3();
-  const inward = new THREE.Vector3();
-  function deform(point, severity) {
-    if (!severity) return;
-    hit.set(point.x, point.y, point.z);
-    inward.set(-hit.x, 0.07, -hit.z).normalize();
-    for (const entry of deformables) {
-      const positions = entry.mesh.geometry.attributes.position;
-      const cached = entry.carSpace;
-      let touched = false;
-      for (let i = 0; i < positions.count; i++) {
-        const cx = cached[i * 3], cy = cached[i * 3 + 1], cz = cached[i * 3 + 2];
-        const dist = Math.hypot(cx - hit.x, cy - hit.y, cz - hit.z);
-        if (dist >= 1.6) continue;
-        const influence = (1 - dist / 1.6) ** 2;
-        if (influence <= 0) continue;
-        const wave = Math.sin(cx * 24 + cz * 17) * 0.12;
-        positions.setXYZ(i,
-          positions.getX(i) + inward.x * influence * severity,
-          positions.getY(i) + inward.y * influence * severity + influence * severity * wave,
-          positions.getZ(i) + inward.z * influence * severity);
-        touched = true;
-      }
-      if (touched) {
-        positions.needsUpdate = true;
-        entry.mesh.geometry.computeVertexNormals();
-        entry.mesh.geometry.computeBoundingSphere();
-      }
+  function repair(){dents=[];damageKey='';for(const {mesh,original} of deformables){mesh.geometry.attributes.position.array.set(original);mesh.geometry.attributes.position.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();}}
+  function visualPose(wheelie=0,steer=0,speed=0,dt=0) {
+    const model=modelOf(profileId),bike=isTwoWheeler(profileId);wheelAngle+=speed*dt/.36;
+    const angle=bike?THREE.MathUtils.clamp(wheelie,0,.7):0;
+    poseQ.setFromEuler(new THREE.Euler(angle,0,bike?THREE.MathUtils.clamp(steer*speed*.025,-.22,.22):0));
+    pivot.set(0,-.25,model.wheelbase/2);rotated.copy(pivot).applyQuaternion(poseQ);
+    shell.position.copy(pivot).sub(rotated);shell.quaternion.copy(poseQ);
+    for(let i=0;i<4;i++){
+      const wheel=wheels[i];wheel.visible=root.visible&&!isAircraft(profileId)&&(!bike||i%2===0);
+      offset.set(bike?0:(i%2?1:-1)*model.width*.492,-.25,(i<2?-1:1)*model.wheelbase/2);
+      offset.sub(pivot).applyQuaternion(poseQ).add(pivot).applyQuaternion(root.quaternion).add(root.position);
+      wheel.position.copy(offset);wheel.quaternion.copy(root.quaternion).multiply(poseQ);
+      if(i<2)wheel.rotateY(steer);wheel.rotateX(wheelAngle);
     }
   }
-
+  rebuild();
   return {
-    root, wheels, steering, paint, materials,
-    // The heavier car sits lower and longer, so the two read differently from
-    // the chase camera without a second hand-built model.
-    setProfile(spec) {
-      const longer = spec.id === 'marlin';
-      root.scale.set(longer ? 1.04 : 1, longer ? 0.96 : 1, longer ? 1.06 : 1);
-      for (const wheel of wheels) wheel.scale.setScalar(longer ? 1.04 : 1);
-      drawPlate(longer ? 'MRL-455' : 'OVR-1986');
-      plateTexture.needsUpdate = true;
+    root,wheels,steering,paint,materials,
+    setProfile(spec){if(profileId!==spec.id){profileId=spec.id;rebuild();}},
+    sync(physics){
+      root.position.copy(physics.chassis.position);root.quaternion.copy(physics.chassis.quaternion);
+      visualPose(physics.wheelie||0,physics.steer,physics.forwardSpeed,0);
+      aircraftParts?.update(physics.flight?.gear||0,0,physics.forwardSpeed);
+      if(!isTwoWheeler(profileId))for(let i=0;i<4;i++){physics.vehicle.updateWheelTransform(i);const t=physics.vehicle.wheelInfos[i].worldTransform;wheels[i].position.copy(t.position);wheels[i].quaternion.copy(t.quaternion);}
+      else for(const i of [0,2])wheels[i].rotateX(physics.vehicle.wheelInfos[i].rotation);
+      materials.red.emissiveIntensity=physics.braking?2.2:.32;
     },
-    sync(physics) {
-      root.position.copy(physics.chassis.position); root.quaternion.copy(physics.chassis.quaternion);
-      for (let i = 0; i < 4; i++) {
-        physics.vehicle.updateWheelTransform(i);
-        const transform = physics.vehicle.wheelInfos[i].worldTransform;
-        wheels[i].position.copy(transform.position); wheels[i].quaternion.copy(transform.quaternion);
-      }
-      steering.rotation.z = physics.steer * 2.4;
-      red.emissiveIntensity = physics.braking ? 2.2 : 0.32;
-      root.updateMatrixWorld(true);
-    },
-    setCockpit(enabled) { windows.front.visible = !enabled; },
-    deform,
-    repair() {
-      for (const { mesh, original } of deformables) {
-        mesh.geometry.attributes.position.array.set(original);
-        mesh.geometry.attributes.position.needsUpdate = true;
-        mesh.geometry.computeVertexNormals(); mesh.geometry.computeBoundingSphere();
-      }
-    },
+    visualPose,
+    flightVisual(gear,dt,speed){aircraftParts?.update(gear,dt,speed);},
+    setCockpit(value){cockpit=value;updateVisibility();},
+    deform(point,severity){if(!severity)return;const dent={x:+point.x.toFixed(3),y:+point.y.toFixed(3),z:+point.z.toFixed(3),s:+severity.toFixed(3)};dents.push(dent);if(dents.length>24)dents.shift();applyDent(point,severity);},
+    damageSnapshot:()=>dents,
+    applyDamage(history=[]){const key=JSON.stringify(history);if(key===damageKey)return;repair();history.forEach(d=>applyDent(d,d.s));damageKey=key;},
+    repair,
+    dispose(){const geometries=new Set();for(const object of [root,...wheels]){object.traverse(n=>{if(n.geometry)geometries.add(n.geometry);});object.removeFromParent();}geometries.forEach(g=>g.dispose());Object.values(materials).forEach(m=>m.dispose());},
   };
 }
