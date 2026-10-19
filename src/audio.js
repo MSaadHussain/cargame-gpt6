@@ -38,6 +38,11 @@ export class EngineAudio {
   }
   aircraftEvent(kind,attenuation=1) {
     if(!this.enabled||!this.context||this.paused)return;
+    if(kind==='warning') {
+      const ctx=this.context,t=ctx.currentTime,osc=ctx.createOscillator(),gain=ctx.createGain();
+      osc.type='sine';osc.frequency.value=880;gain.gain.setValueAtTime(this.volume*.15,t);gain.gain.exponentialRampToValueAtTime(.001,t+.16);
+      osc.connect(gain);gain.connect(ctx.destination);osc.start(t);osc.stop(t+.16);osc.onended=()=>{osc.disconnect();gain.disconnect();};return;
+    }
     const ctx=this.context,t=ctx.currentTime,duration=kind==='explosion'?.65:kind==='gear'?.35:.16;
     const buffer=ctx.createBuffer(1,Math.floor(ctx.sampleRate*duration),ctx.sampleRate),data=buffer.getChannelData(0);
     for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*(1-i/data.length)**2;

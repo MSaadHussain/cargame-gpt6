@@ -39,7 +39,7 @@ export function createDogfight(scene,physics,car,hooks) {
   panel.innerHTML='<div class="air-eyebrow">SKYPORT · AIR ARENA</div><h2>Flight control</h2><p class="air-stats"></p><p class="air-status"></p><p class="air-weapons"></p><ol class="air-board"></ol><button type="button">Recover / respawn · R</button><small>Click: capture · Esc: release · Mouse 1: cannon<br>Q: target lock · E: missile · F: flares (3)<br>H: landing gear · hold X: rear camera<br>W/S: thrust / brake · A/D: full rolls<br>Mouse / arrows: loops · Shift: afterburner<br>C: cockpit · Z: centre aim · M: sound</small>';
   document.querySelector('#game').append(panel,reticle);
   const stats=panel.querySelector('.air-stats'),status=panel.querySelector('.air-status'),board=panel.querySelector('.air-board');
-  const solo=new AirCombat();let enabled=false,online=false,self='solo',snapshot=null,lastShot=0,lastCrash=0,lastPaint=0,lastRespawn=0,offset=0;
+  const solo=new AirCombat();let enabled=false,online=false,self='solo',snapshot=null,lastShot=0,lastCrash=0,lastPaint=0,lastRespawn=0,lastWarning=0,offset=0;
   const mine=()=>snapshot?.pilots.find(p=>p.id===self);
   const now=()=>Date.now()+offset;
   function accept(air){if(!air)return;snapshot=air;offset=air.serverNow-Date.now();hooks.state(air);flightFx.missiles(air.missiles);}
@@ -70,7 +70,10 @@ export function createDogfight(scene,physics,car,hooks) {
       if(Date.now()-lastPaint<100)return;lastPaint=Date.now();
       stats.textContent=`ALT ${Math.round(physics.chassis.position.y)} m · THR ${Math.round(physics.flight.throttle*100)}% · HULL ${mine()?.hp??100}% · GEAR ${physics.flight.gear>.95?'DOWN':physics.flight.gear<.01?'UP':'MOVING'}`;
       const incoming=snapshot?.missiles?.some(m=>m.target===self&&!m.diverted),pilot=mine();
-      panel.querySelector('.air-weapons').textContent=`${incoming?'⚠ MISSILE INBOUND — F FLARES! · ':''}Missiles ${pilot?.missiles??4}/4 · Flares ${pilot?.flares??3}/3 · ${pilot?.lockTarget?(pilot.lockReady?'LOCKED — E to launch':'LOCKING...'):'Q to lock'}`;
+      panel.classList.toggle('incoming',!!incoming);
+      if(incoming&&!paused&&Date.now()-lastWarning>900){lastWarning=Date.now();hooks.sound?.('warning',pos);}
+      const targetName=snapshot?.pilots.find(p=>p.id===pilot?.lockTarget)?.name||'target';
+      panel.querySelector('.air-weapons').textContent=`${incoming?'⚠ MISSILE INBOUND — F FLARES! · ':''}Missiles ${pilot?.missiles??4}/4 · Flares ${pilot?.flares??3}/3 · ${pilot?.lockTarget?(pilot.lockReady?`LOCKED: ${targetName} — E to launch`:`LOCKING: ${targetName}...`):'Q to lock'}`;
       const wait=Math.max(0,Math.ceil(((mine()?.respawnAt||0)-now())/1000));
       status.textContent=physics.damage>=100?`Destroyed · respawn in ${wait}s`:input.rearView?'REAR VIEW · release X to return':physics.flight.grounded?'LANDED · S brakes · W thrust + pitch up to take off':physics.flight.speed<aircraftSpec(physics.spec.id).stallSpeed?'STALL · increase thrust':physics.spec.id!=='kestrel'?'Unarmed aircraft · F flares / H gear':(mine()?.protectedUntil??0)>now()?'Spawn shield · firing ends protection':online?'Mouse 1 cannon · Q lock / E missile':'Solo flight · join multiplayer for dogfights';
       board.replaceChildren();for(const pilot of [...(snapshot?.pilots||[])].sort((a,b)=>b.kills-a.kills)){const li=document.createElement('li');li.textContent=`${pilot.name}: ${pilot.kills} kills / ${pilot.deaths} losses`;board.append(li);}

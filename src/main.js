@@ -592,7 +592,7 @@ async function startGame() {
       if(camera.fov!==49){camera.fov=49;camera.updateProjectionMatrix();}
     } else {
       localCamera.set(isTwoWheeler(state.vehicle)||state.vehicle==='formula'?0:-.43,isTwoWheeler(state.vehicle)?1.6:.94,isTwoWheeler(state.vehicle)?-.36:-.03); camera.position.copy(localCamera).applyQuaternion(car.root.quaternion).add(car.root.position);
-      if(isAircraft(state.vehicle)){localCamera.set(0,state.vehicle==='skyliner'?4.4:2,state.vehicle==='skyliner'?-30:-3.5);camera.position.copy(localCamera).applyQuaternion(car.root.quaternion).add(car.root.position);}
+      if(isAircraft(state.vehicle)){localCamera.set(0,state.vehicle==='skyliner'?4.4:state.vehicle==='sparrow'?1.65:2,state.vehicle==='skyliner'?-30:state.vehicle==='sparrow'?-.45:-3.5);camera.position.copy(localCamera).applyQuaternion(car.root.quaternion).add(car.root.position);}
       camera.quaternion.copy(car.root.quaternion);
       const look = new THREE.Quaternion().setFromEuler(new THREE.Euler(state.pitch - 0.08, state.yaw, 0, 'YXZ'));
       camera.quaternion.multiply(look);

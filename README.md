@@ -8,28 +8,34 @@ Choose **Map → Skyport Air Arena**, or **Vehicle → Aircraft** while offline.
 
 - **Kestrel F-27:** original low-poly fighter, swept wings, twin fins, cannon and afterburner.
 - **Skyliner 777:** original Boeing 777-inspired twin-turbofan airliner, cabin windows and swept wings; unarmed with slower handling. Not an exact licensed Boeing model.
+- **Sparrow S-2:** original low-poly propeller biplane, twin wings, open cockpit and animated propeller; unarmed with agile handling.
 - **Click the game once:** capture and hide the OS cursor using [Pointer Lock](https://developer.mozilla.org/en-US/docs/Web/API/Pointer_Lock_API). **Esc** releases the mouse; menus also release it. Capture needs a browser-supported user click; permission failures show a retry message.
-- **Mouse movement:** moves a bounded virtual aim marker using relative mouse motion, so the OS cursor cannot leave the game while captured. The aircraft follows the marker. **F** centres the marker and camera.
+- **Mouse movement:** moves a bounded virtual aim marker using relative mouse motion, so the OS cursor cannot leave the game while captured. The aircraft follows the marker. **Z** centres the marker and camera.
 - **Hold Mouse 1 after capture:** fire at the marker's camera ray. Nearby target convergence corrects the offset between the chase camera and gun muzzle. The relay validates finite coordinates, range and a forward aiming cone before checking hits; client-provided hit/damage claims are never used. **Hold right mouse:** look around without firing; releasing recentres the view. **C:** cockpit/chase view.
-- **W/S:** increase/decrease thrust; **A/D:** bank; **arrows:** backup pitch/bank controls; **Shift:** fighter afterburner. Touch has pitch and FIRE buttons.
+- **W/S:** increase/decrease thrust (S also brakes on the runway); **A/D:** full barrel rolls; **mouse/arrows:** pitch through full loops; **Shift:** fighter afterburner. Orientation is quaternion-based with no pitch/roll clamp or forced auto-level. Touch has pitch and FIRE buttons.
+- **H:** extend/retract animated landing gear, also visible to other players. Land gently, upright and aligned with the runway, with gear fully down and reduced speed. Gear-up or hard landings crash. Increase thrust and pitch up to take off again.
+- **Hold X:** rear camera; release to return to the previous view. The flight camera follows inverted orientation too.
+- **Q:** acquire another player's aircraft near the aim marker. Keep it in the forward cone, within 2.5 km, for 1.2 seconds until the HUD says LOCKED. Spawn-shielded targets cannot be locked.
+- **E:** launch a homing missile from the Kestrel (4 per life, 0.9-second launch cooldown). It follows the target's current position, not just the original lock position. A hit destroys an unshielded aircraft and awards a kill.
+- **F:** flare burst (3 per life, 2-second cooldown). Only the targeted player's flares divert a missile; another player's flares do not. A burst also protects against new missiles for 2.5 seconds. Incoming missiles trigger a HUD warning and sound when audio is enabled. Missiles expire after 30 seconds or when their target leaves/dies.
 - **R:** recovery/respawn (8-second cooldown while alive). Destruction automatically respawns after 4 seconds; fresh spawns get a 5-second shield, cancelled when they fire. **V** cycles only the current map's vehicle type.
 
-Public matchmaking and private room codes work in Skyport. A cannon hit removes 25 of 100 hull points; four hits destroy an aircraft, trigger a shared explosion and award a kill. The scoreboard tracks kills/losses and late joiners receive current health. Aircraft transmit full 3D orientation and altitude. The server only performs bounded numeric ray/sphere hit checks, rate limiting, health/scoring and respawn rules; no renderer or physics world runs there. Tracers and capped explosion particles render in browsers. Positions are still client-reported, so this is not a cheat-proof authoritative flight simulation.
+Public matchmaking and private room codes work in Skyport. A cannon hit removes 25 of 100 hull points; four hits destroy an aircraft, trigger a shared explosion and award a kill. The scoreboard tracks kills/losses and late joiners receive current health. Aircraft transmit full 3D orientation, altitude and landing-gear extension. Name tags are compact, distance-scaled and anchored above aircraft. Browser-rendered trails, flares and explosions are bounded; jet/propeller engine sounds and weapon effects respect the sound setting (**M**). The server performs bounded numeric hit checks and homing updates (20 Hz, maximum 16 missiles per room), with active weapon snapshots at 10 Hz; no renderer or rigid-body physics world runs there. Recovering while alive does not refill ammunition, and recovery is blocked while an undiverted missile is incoming. Ammunition resets after destruction/respawn. Positions are still client-reported, so this is not a cheat-proof authoritative flight simulation.
 
 The Skyport ground now uses non-overlapping surface tiles instead of stacked grass, runway, taxiway and water sheets. Runway paint uses explicit depth bias, and flight camera near clipping is 2 m in chase view / 0.5 m in cockpit view to improve depth precision over the 11 km viewing range.
 
-Upload **`oversteer-flight-fix.zip`** using **Express / Node 22.x / npm / `server.js`** and redeploy. This includes the flicker fix, pointer lock, cursor-ray aiming, all vehicles/maps and prebuilt `dist/`. Update the relay too, not just the browser assets. All players should refresh after deployment. Automated tests cover ground overlap, pointer-lock lifecycle, aim projection, flight, geometry and real WebSocket combat. No browser visual play-test was performed.
+Upload **`oversteer-air-combat-v2.zip`** using **Express / Node 22.x / npm / `server.js`** and redeploy. This includes the flight/camera fixes, all 15 vehicles/maps, homing missiles, flares and prebuilt `dist/`. Update the relay too, not just the browser assets. All players should refresh after deployment. Automated tests cover aerobatics, landing/takeoff, rear-camera math, gear meshes, name-tag scales, bounded effects, sound profiles, lock/ammo/flare rules and real WebSocket combat, alongside previous regression tests. No browser visual or speaker/audio play-test was performed.
 
 ## Scooters and vehicle categories
 
-The garage now has **All / Cars / Racing Cars / Bikes / Scooters / Aircraft** filters (14 vehicles total). Filtering does not change your current vehicle; selecting a model does. Cycling with **V** reveals the selected vehicle's category if necessary.
+The garage now has **All / Cars / Racing Cars / Bikes / Scooters / Aircraft** filters (15 vehicles total). Filtering does not change your current vehicle; selecting a model does. Cycling with **V** reveals the selected vehicle's category if necessary.
 
 - **Swift GT 350:** silver sporty maxi scooter, split front fairing, twin headlights, windscreen, stepped black seat and mirrors.
 - **Vesper 125:** blue retro scooter, rounded leg shield and rear pods, circular handlebar headlamp, black bench and mirrors.
 
 Both are original lightweight procedural models inspired by the supplied reference images, not exact imported replicas. They include a seated helmeted rider, browser-side collisions/dents, remote name tags and multiplayer wheelies (**B + throttle**, once moving). Balance and wheelies use the existing arcade two-wheel system, not a full motorcycle simulation. Geometry is merged by material to keep draw calls low.
 
-Both scooters are included in **`oversteer-flight-fix.zip`**. Automated geometry, physics, categories and real WebSocket sync tests cover both scooters.
+Both scooters are included in **`oversteer-air-combat-v2.zip`**. Automated geometry, physics, categories and real WebSocket sync tests cover both scooters.
 
 ## Run
 

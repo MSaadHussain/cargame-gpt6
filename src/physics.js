@@ -32,7 +32,7 @@ export const VEHICLES = {
 };
 
 for (const spec of [
-  {id:'sparrow',name:'Sparrow',badge:'S-2',mass:900,peakTorque:250,engine:'Radial prop',drivetrain:'THRUST',paint:'#e6a82f',paintName:'Sunburst yellow',blurb:'Agile aerobatic biplane with twin wings and a spinning propeller. Full loops/rolls; H gear, X rear view, G flares. Unarmed.'},
+  {id:'sparrow',name:'Sparrow',badge:'S-2',mass:900,peakTorque:250,engine:'Radial prop',drivetrain:'THRUST',paint:'#e6a82f',paintName:'Sunburst yellow',blurb:'Agile aerobatic biplane with twin wings and a spinning propeller. Full loops/rolls; H gear, X rear view, F flares. Unarmed.'},
   {id:'kestrel',name:'Kestrel',badge:'F-27',mass:12000,peakTorque:1000,engine:'Jet turbine',drivetrain:'THRUST',paint:'#778c99',paintName:'Storm grey',blurb:'Low-poly fighter with swept wings and twin tails. Skyport only. Mouse aim, Mouse 1 cannon, W/S thrust, A/D bank, Shift afterburner.'},
   {id:'skyliner',name:'Skyliner',badge:'777',mass:180000,peakTorque:1000,engine:'Twin turbofan',drivetrain:'THRUST',paint:'#e7ecf1',paintName:'Airline white',blurb:'Boeing 777-inspired twin-engine airliner with swept wings and cabin windows. Skyport only; unarmed, slower turning and heavy.'},
   {id:'swift',name:'Swift',badge:'GT 350',mass:270,peakTorque:72,engine:'Scooter single',drag:.25,final:4.1,engineBrake:7,brakeFront:8,brakeRear:5,handbrake:12,suspensionStiffness:35,rollInfluence:.04,transferGain:.08,gripFront:3.2,gripRear:3.5,paint:'#aeb7c4',paintName:'Satin silver',blurb:'Sporty maxi scooter with silver fairings, twin lamps, windscreen and stepped seat. Seated rider; hold B with throttle to wheelie.'},

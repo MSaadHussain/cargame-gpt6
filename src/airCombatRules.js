@@ -1,4 +1,4 @@
-// Numeric-only room rules: no renderer, Cannon world, or projectile simulation.
+// Numeric-only room rules: no renderer or rigid-body physics world.
 import { isAircraft } from './vehicleModels.js';
 import { AirWeapons } from './airWeapons.js';
 export const FLIGHT_LIMIT=4800, FLIGHT_CEILING=1800;

@@ -67,7 +67,7 @@ server.on('upgrade', (req, socket, head) => {
   wss.handleUpgrade(req, socket, head, ws => wss.emit('connection', ws));
 });
 wss.on('connection', ws => {
-  let player = null, lastState = 0; ws.alive = true; ws.on('pong', () => { ws.alive = true; });
+  let player = null, lastState = 0, lastAirCommand = 0; ws.alive = true; ws.on('pong', () => { ws.alive = true; });
   ws.on('message', raw => {
     let packet; try { packet = JSON.parse(raw.toString()); } catch { return; } if (!packet || typeof packet !== 'object') return;
     const meta = { name: playerName(packet.name), map: ['portside','coastline','apex','skyport'].includes(packet.map)?packet.map:'portside', vehicle: packet.vehicle, paint: packet.paint };
@@ -104,6 +104,7 @@ wss.on('connection', ws => {
     if(packet.t==='npcHit'&&player){const room=rooms.get(player.room);if(room&&damageNPC(room,player,packet.index))broadcast(room,{t:'npcDamage',npcDamage:room.npcDamage,serverNow:Date.now()});return;}
     if(['airFire','airRespawn','airCrash','airLock','airLaunch','airFlare'].includes(packet.t)&&player) {
       const room=rooms.get(player.room);if(!room?.air)return;
+      if(['airLock','airLaunch','airFlare'].includes(packet.t)){const time=Date.now();if(time-lastAirCommand<80)return;lastAirCommand=time;}
       if(packet.t==='airLock'){const ok=room.air.weapons.lock(player.id,packet.target,room.players);send(ws,{t:'airNotice',message:ok?'Acquiring target lock...':'Aim at an unshielded aircraft within 2.5 km.'});broadcast(room,{t:'airState',air:room.air.snapshot()});}
       if(packet.t==='airLaunch'){const event=room.air.weapons.launch(player.id,room.players);if(event)broadcast(room,event);else send(ws,{t:'airNotice',message:'Need a completed target lock and a missile.'});}
       if(packet.t==='airFlare'){const event=room.air.weapons.flare(player.id,room.players);if(event)broadcast(room,event);else send(ws,{t:'airNotice',message:'Flares empty or cooling down (2 seconds).'});}

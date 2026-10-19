@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { aircraftSpec } from './aircraftSpecs.js';
 export function createAircraftParts(id,materials) {
   const root=new THREE.Group(),gear=new THREE.Group(),propeller=new THREE.Group();root.add(gear,propeller);
+  root.name='aircraft-parts';gear.name='landing-gear';propeller.name='propeller';
   const s=aircraftSpec(id),legHeight=s.gearHeight-s.gearRadius;
   const strutGeo=new THREE.CylinderGeometry(.07,.09,legHeight,6),wheelGeo=new THREE.CylinderGeometry(s.gearRadius,s.gearRadius,s.gearRadius*.65,10);wheelGeo.rotateZ(Math.PI/2);
   for(const [x,z] of [[0,s.gearFront],[-s.gearWidth,s.gearRear],[s.gearWidth,s.gearRear]]) {
